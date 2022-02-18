@@ -1,3 +1,24 @@
+import { Post } from './post.js';
+const posts = [];
+let post = new Post();
+post.id = 'a';
+post.title = 'aa';
+post.authorId = 'aaa';
+post.content = 'aaaa';
+posts.push(post);
+post = new Post();
+post.id = 'b';
+post.title = '두번째 이야기';
+post.authorId = '나';
+post.content = '나는 비로소 ~~~를 하기 시작했다.';
+posts.push(post);
+post = new Post();
+post.id = 'c';
+post.title = 'cc';
+post.authorId = 'ccc';
+post.content = 'cccc';
+posts.push(post);
+
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const http = require('http');
@@ -26,34 +47,76 @@ function serverCallback(req, res) {
 
 function parseReceivedMessage(req, res) {
     // Using reqular expression
+    const HOME_REGEX = /^\/$/;
     const POSTS_REGEX = /^\/posts$/;
     const POSTS_ID_REGEX = /^\/posts\/([a-zA-Z0-9-_]+)$/;
+    const homeRegexResult = 
+        (req.url && HOME_REGEX.exec(req.url)) || undefined;
     const postsRegexResult = 
         (req.url && POSTS_REGEX.exec(req.url)) || undefined;
     const postIdRegexResult = 
         (req.url && POSTS_ID_REGEX.exec(req.url)) || undefined;
     
-    if (postsRegexResult && req.method === 'GET') {
+    if (homeRegexResult && req.method === 'GET') {
         res.statusCode = 200;
-        res.end('Received GET all posts.');
+        res.end('Received GET home.');
+    } else if (postsRegexResult && req.method === 'GET') {
+        console.log(posts);
+
+        const getPosts = posts.map((value) => ({
+            id: value.id, 
+            title: value.title
+        }));
+
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify(getPosts));
     } else if (postsRegexResult && req.method === 'POST') {
+        req.setEncoding('utf-8');
+        req.on('data', registerPost);
         res.statusCode = 200;
-        res.end('Recevied POST all posts. Creating post.');
+        res.end('Creating post.');
     } else if (postIdRegexResult) {
-        let resString = 'Reading post.';        
-        res.statusCode = 200;
+        let resString = '';      
 
         if(postIdRegexResult.length >= 2) {
-            resString += ' The post id: ' + postIdRegexResult[1].toString();
+            let findedPost = posts.find(
+                post => 
+                post.id === postIdRegexResult[1].toString()
+            );
+
+            if (findedPost !== undefined) {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+                res.end(JSON.stringify(findedPost));
+            } else {
+                res.statusCode = 404;
+                resString = 'Cannot find post id.';
+                res.end(resString);
+            }
         } else {
+            res.statusCode = 404;
             resString = 'Not available regular expression result.';
+            res.end(resString);
         }
 
-        res.end(resString);
+        
     } else {
         res.statusCode = 404;
         res.end('Not Found');
     }
+}
+
+function registerPost(data) {
+    console.log('register data:', data);
+    const body = JSON.parse(data);
+    const post = new Post();
+    post.id = body.id; // consider how to generate post id.
+    post.title = body.title;
+    post.content = body.content;
+    post.authorId = body.authorId;
+    posts.push(post);
+    console.log(posts);
 }
 
 function tryAssert(req, res) {
