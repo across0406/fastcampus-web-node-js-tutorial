@@ -1,5 +1,9 @@
 import { Post } from './post.js';
-import { REGEXS, APIResponse, API } from './api.js';
+import { 
+    REGEXS, APIResponse, API, 
+    GetAllPostsRoute, GetPostRoute, 
+    PostRegisterPostRoute
+} from './api.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
@@ -122,8 +126,7 @@ class Server {
     async parseMessage(req, res) {
         const keys = Array.from(this.api.routes.keys());
         const finded = keys.find((value) => (
-            req.url && 
-            req.method && 
+            req.url && req.method && 
             this.api.routes.get(value).regexURLMethodPair.regexURL.test(req.url) && 
             this.api.routes.get(value).regexURLMethodPair.method === req.method));
         let result = undefined;
@@ -134,7 +137,19 @@ class Server {
             res.end(notFound.body);
             result = undefined;
         } else {
-            this.api.routes.get(finded).posts = this.posts;
+            const route = this.api.routes.get(finded);
+            route.posts = this.posts;
+
+            if (route instanceof GetPostRoute) {
+                route.id = route.regexURLMethodPair.regexURL.exec(req.url)[1].toString();
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            } else if (route instanceof PostRegisterPostRoute) {
+                req.setEncoding('utf-8');
+                req.on('data', this.registerPost.bind(this));
+            } else if (route instanceof GetAllPostsRoute) {
+                res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            }
+            
             result = await this.api.routes.get(finded).callback();
             res.statusCode = result.statusCode;
 
@@ -220,6 +235,16 @@ class Server {
         if (totalResult) {
             console.log(`The server is listening at port: ${port}`);
         }
+    }
+
+    registerPost(data) {
+        const body = JSON.parse(data);
+        const post = new Post();
+        post.id = body.id; // consider how to generate post id.
+        post.title = body.title;
+        post.content = body.content;
+        post.authorId = body.authorId;
+        this.posts.set(post.id, post);
     }
 }
 

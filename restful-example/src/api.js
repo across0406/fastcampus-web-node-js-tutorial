@@ -21,6 +21,7 @@ class APIResponse {
 class BaseRoute {
     constructor(regexURL, method) {
         this.regexURLMethodPair = new RegexURLMethodPair(regexURL, method);
+        this.posts = undefined;
     }
 
     async callback() {
@@ -44,7 +45,6 @@ class HomeRoute extends BaseRoute {
 class GetAllPostsRoute extends BaseRoute {
     constructor(regexURL, method) {
         super(regexURL, method);
-        this.posts = undefined;
     }
 
     async callback() {
@@ -72,12 +72,29 @@ class GetAllPostsRoute extends BaseRoute {
 class GetPostRoute extends BaseRoute {
     constructor(regexURL, method) {
         super(regexURL, method);
+        this.id = undefined;
     }
 
     async callback() {
         const response = new APIResponse();
         response.statusCode = 200;
-        response.body = {};
+        // postId = ;
+        
+        if (this.posts !== undefined && 
+            this.id !== undefined) {
+            const gotPosts = Array.from(this.posts.values())
+                .find(post => post.id === this.id);
+
+            if (gotPosts !== undefined) {
+                response.body = gotPosts;
+            } else {
+                response.body = 'Cannot find post id.';
+            }
+        } else {
+            response.body = 'This is caused from server.' + 
+                            'The server has some problem.';
+        }
+
         return response;
     }
 }
@@ -90,7 +107,7 @@ class PostRegisterPostRoute extends BaseRoute {
     async callback() {
         const response = new APIResponse();
         response.statusCode = 200;
-        response.body = {};
+        response.body = 'Creating post.';
         return response;
     }
 }
@@ -115,4 +132,8 @@ class API {
 }
 
 
-export { APIResponse, API, REGEXS };
+export { 
+    APIResponse, API, REGEXS, 
+    GetAllPostsRoute, GetPostRoute, 
+    PostRegisterPostRoute
+};
