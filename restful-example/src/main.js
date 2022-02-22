@@ -23,6 +23,8 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const http = require('http');
 
+import { Server } from './server.js';
+
 function createServer() {
     let server = http.createServer(serverCallback);
     let isSuccess = true;
@@ -99,8 +101,6 @@ function parseReceivedMessage(req, res) {
             resString = 'Not available regular expression result.';
             res.end(resString);
         }
-
-        
     } else {
         res.statusCode = 404;
         res.end('Not Found');
@@ -174,10 +174,12 @@ function listening(port) {
 }
 
 function main() {
-    const server = createServer();
     const PORT = 12000;
-    
-    server.listen(PORT, listening.call(server, PORT));
+    // const server = createServer();
+    // server.listen(PORT, listening.call(server, PORT));
+
+    const server = new Server(PORT);
+    server.createServer();
 }
 
 main();
